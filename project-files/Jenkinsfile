@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    environment {
+        MAVEN_HOME = tool(name: 'M3', type: 'maven')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh "${MAVEN_HOME}/bin/mvn clean package"
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    def server = 'http://localhost:8080'
+                    def appName = 'javaee-tomcat-gui'
+                    def warFile = "target/${appName}.war"
+                    sh "curl -u admin:admin -T ${warFile} ${server}/manager/text/deploy?path=/${appName}&update=true"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+        }
+    }
+}
